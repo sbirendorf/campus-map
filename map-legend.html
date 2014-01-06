@@ -1,0 +1,878 @@
+<html>
+	<head>
+		<title>Interactive legend + MarkerManager = Sweet Google Map!</title>
+		<style type="text/css">
+
+		body {
+			margin: 0;
+			padding: 0;
+		}
+
+		#map {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 940px;
+			height: 803px;
+		}
+		.htmlBox {
+			width:420px;
+			height:160px;
+			font-size: .9em;
+			font-family: Helvetica;
+		}
+		.htmlTitle {
+		font-size:18px;
+		color:#005195;	
+		}
+		.htmlDesc {
+			font-size: .8em;
+			float:left;
+			width:250px;
+			/* text-align: justify; */
+		}
+		.htmlImg {
+			float:right;
+			width:160px;
+			height:120px;
+		}
+		.htmlImg img {
+			border: 1px solid #000;
+		}
+		.htmlDesc ul {
+			margin-left: -22px;
+		}
+		/* .gmnoprint {
+			width:350px;
+			height:220px;
+		} */
+		</style>
+		
+		<!-- google maps api (required) -->
+
+		<!-- <script type="text/javascript" src="http://maps.google.com/maps?file=api&amp;v=2&amp;key=AIzaSyA-_ATgZdYsbqWfGfJzrZ0TswHNdwprOPs&sensor=false"></script> -->
+		
+		<script type="text/javascript" src="http://maps.google.com/maps?file=api&amp;v=3&amp;key=AIzaSyA-_ATgZdYsbqWfGfJzrZ0TswHNdwprOPs&sensor=false"></script>
+
+		<!-- markermanager (required) -->
+		<script type="text/javascript" src="http://gmaps-utility-library-dev.googlecode.com/svn/trunk/markermanager/src/markermanager.js"></script>
+
+		<!-- mapiconmaker (NOT required by LegendControl, but used below for creating pins of different colors) -->
+		<script type="text/javascript" src="http://gmaps-utility-library-dev.googlecode.com/svn/trunk/mapiconmaker/src/mapiconmaker.js"></script>
+
+		<!-- legendcontrol (required) -->
+		<script type="text/javascript" src="./LegendControl.js"></script>
+
+
+
+	</head>
+	<!--<body  onunload="GUnload()">-->
+	<body>
+
+		<!-- map viewport -->
+		<div id="map"></div>
+
+				<!-- set up the map -->
+		<script type="text/javascript">
+		 //<![CDATA[		
+		
+		
+
+
+      // === This function picks up the click and opens the corresponding info window ===
+      function myclick(i) {
+        GEvent.trigger(markers[i], "click");
+      }
+            
+      
+      		// these variables are not required by LegendControl
+		var
+			TYPE_ADMIN      = 'admin',
+			TYPE_RES     	= 'residence',
+			TYPE_CAMPUS_LIFE_SERVIS 	= 'campus_life_servies',
+			TYPE_ATHLETICS 	= 'athletics',
+			TYPE_DINING 	= 'dining',
+			TYPE_ACADEMIC 	= 'academic',
+			TYPE_HEALTH_SAFETY 	= 'health_safety',
+			TYPE_RELIGIOUS 	= 'religious',
+			TYPE_PARKING = 'parking',
+
+			PIN_WIDTH  = 32,
+			PIN_HEIGHT = 32,
+
+			PIN_ADMIN_BIG       = 'http://chart.apis.google.com/chart?cht=mm&chs=32x32&chco=ffffff,cc44ff,000000&ext=.png',
+			PIN_RES_BIG     = 'http://chart.apis.google.com/chart?cht=mm&chs=32x32&chco=ffffff,ff8b16,000000&ext=.png',
+			PIN_CAMPUS_LIFE_SERVIS_BIG = 'http://chart.apis.google.com/chart?cht=mm&chs=32x32&chco=ffffff,44aa00,000000&ext=.png',
+			PIN_ATHLETICS_BIG = 'http://chart.apis.google.com/chart?cht=mm&chs=32x32&chco=ffffff,005195,000000&ext=.png',
+			PIN_ACADEMIC_BIG = 'http://chart.apis.google.com/chart?cht=mm&chs=32x32&chco=ffffff,005195,000000&ext=.png',
+			PIN_DINING_BIG = 'http://chart.apis.google.com/chart?cht=mm&chs=32x32&chco=ffffff,005195,000000&ext=.png',
+			PIN_HEALTH_SAFETY_BIG = 'http://chart.apis.google.com/chart?cht=mm&chs=32x32&chco=ffffff,005195,000000&ext=.png',
+			PIN_RELIGIOUS_BIG = 'http://chart.apis.google.com/chart?cht=mm&chs=32x32&chco=ffffff,005195,000000&ext=.png',
+
+			PIN_ADMIN_SMALL       = 'http://chart.apis.google.com/chart?cht=mm&chs=16x16&chco=ffffff,cc44ff,000000&ext=.png',
+			PIN_RES_SMALL     = 'http://chart.apis.google.com/chart?cht=mm&chs=16x16&chco=ffffff,ff8b16,000000&ext=.png',
+			PIN_CAMPUS_LIFE_SERVIS_SMALL = 'http://chart.apis.google.com/chart?cht=mm&chs=16x16&chco=ffffff,44aa00,000000&ext=.png',
+			PIN_ATHLETICS_SMALL = 'http://chart.apis.google.com/chart?cht=mm&chs=16x16&chco=ffffff,005195,000000&ext=.png',
+			PIN_ACADEMIC_SMALL = 'http://chart.apis.google.com/chart?cht=mm&chs=16x16&chco=ffffff,FF0000,000000&ext=.png',
+			PIN_DINING_SMALL = 'http://chart.apis.google.com/chart?cht=mm&chs=16x16&chco=ffffff,ADFF2F,000000&ext=.png',
+			PIN_HEALTH_SAFETY_SMALL = 'http://chart.apis.google.com/chart?cht=mm&chs=16x16&chco=ffffff,FFFF00,000000&ext=.png',
+			PIN_RELIGIOUS_SMALL = 'http://chart.apis.google.com/chart?cht=mm&chs=16x16&chco=ffffff,00FF80,000000&ext=.png',
+			PIN_PARKING_SMALL = 'http://chart.apis.google.com/chart?cht=mm&chs=16x16&chco=ffffff,FFFFFF,000000&ext=.png',
+
+			ZOOM_MIN = 0,
+			ZOOM_MED = 17,
+			ZOOM_MAX = 18,
+
+			colors = {},
+			legendValues, // legend data
+			markerGroups = {}, // container for arrays of markers, one array per type (required by LegendControl)
+			markers
+		;
+
+		// marker pin colors
+		colors[TYPE_ADMIN]       = '#cc44ff';
+		colors[TYPE_RES]         = '#ff8b16';
+		colors[TYPE_CAMPUS_LIFE_SERVIS]  = '#44aa00';
+		colors[TYPE_ATHLETICS]  = '#005195';
+		colors[TYPE_DINING]  = '#ADFF2F';
+		colors[TYPE_ACADEMIC]  = '#FF0000';
+		colors[TYPE_HEALTH_SAFETY]  = '#FFFF00';
+		colors[TYPE_RELIGIOUS]  = '#00FF80';
+		colors[TYPE_PARKING]  = '#FFFFFF';
+		
+			
+		legendValues = [
+			// pins show up in the legend in the order specified below
+			// if you change the order, make sure they all have commas at the end, except the last one!
+			{ type    : TYPE_ACADEMIC,     		description : 'Academic (Classrooms)',     pinSrc : PIN_ACADEMIC_SMALL     },
+			{ type    : TYPE_CAMPUS_LIFE_SERVIS, 		description : 'Campus Life/Services', pinSrc : PIN_CAMPUS_LIFE_SERVIS_SMALL },
+			{ type    : TYPE_HEALTH_SAFETY, 		description : 'Health and Safety', pinSrc : PIN_HEALTH_SAFETY_SMALL },
+			{ type    : TYPE_ATHLETICS, 	description : 'Athletics/Fitness', pinSrc : PIN_ATHLETICS_SMALL },
+			{ type    : TYPE_DINING,       	description : 'Dining Facilities',       pinSrc : PIN_DINING_SMALL       },
+			{ type    : TYPE_RELIGIOUS, 	description : 'Religious', pinSrc : PIN_RELIGIOUS_SMALL },
+			{ type    : TYPE_ADMIN,       	description : 'Administrative',       pinSrc : PIN_ADMIN_SMALL       },
+			{ type    : TYPE_RES,     		description : 'Housing',     pinSrc : PIN_RES_SMALL     },
+			{ type    : TYPE_PARKING,     		description : 'Parking',     pinSrc : PIN_PARKING_SMALL     }
+		];
+
+
+
+// === This function picks up the click and opens the corresponding info window ===
+      
+		 var labelContainer;
+
+
+		function initMap() {
+			var map, mgr;
+
+			// set up your basic map
+			map = new GMap2(document.getElementById('map'));
+			map.setMapType( G_HYBRID_MAP );
+			map.setCenter(new GLatLng(42.294184,-71.828903), 17);
+			map.addControl(new GLargeMapControl());
+			map.addControl(new GScaleControl());
+			map.addControl(new GMapTypeControl());
+
+
+			// create markermanager instance
+			mgr = new MarkerManager(map);
+
+			// add markers to MarkerManager and set up markerGroups
+			initMarkers(mgr);
+			
+			// add legend
+			map.addControl(new LegendControl({
+				mgr          : mgr,
+				markerGroups : markerGroups,
+				legendValues : legendValues
+			}));
+			
+		//	map.addControl(new LabelControl());
+			
+		}
+
+
+		function initMarkers(mgr) {
+			var item, i, len;
+ 
+			// setup marker groups by type
+			for (item in legendValues) {
+				if ('function' !== typeof legendValues[item]) {
+					markerGroups[legendValues[item].type] = [];
+				}
+			}
+
+			// create arrays of markers of the various types
+			for (i = 0, len = markers.length; i < len; i++) {
+				markerGroups[markers[i].type].push(createMarker(markers[i]));
+				
+
+				
+				 				 //i++;
+				 //return marker;
+				
+			}
+
+			// add markers to the map
+			for (item in markerGroups) {
+				if ('function' !== typeof markerGroups[item]) {
+					for (i = 0, len = markerGroups[item].length; i < len; ++i) {
+						mgr.addMarker(markerGroups[item][i], markerGroups[item][i].zoomMin, markerGroups[item][i].zoomMax);
+						
+							
+					}
+					 
+				}
+			}
+
+			// display the pins
+			mgr.refresh();
+		}
+
+		/**
+		 * Create a marker
+		 * @param object obj Object literal specifying marker attributes
+		 * @return GMarker
+		 */
+		
+		function createMarker(obj) {
+			var marker;
+			
+			
+			marker = new GMarker(new GLatLng(obj.lat, obj.lng), {
+				title    : obj.name,
+				desc     : obj.desc,
+				img      : obj.img,
+				icon     : MapIconMaker.createMarkerIcon({
+					width        : PIN_WIDTH,
+					height       : PIN_HEIGHT,
+					primaryColor : colors[obj.type]
+				})
+			});
+
+			marker.zoomMin = obj.zoomMin;
+			marker.zoomMax = obj.zoomMax;
+			
+			
+						
+			GEvent.addListener(marker, 'click', function() {
+			marker.openInfoWindowHtml('<div class="htmlBox"><div class="htmlTitle">' + obj.name + '</div><div class="htmlDesc">'  + obj.desc + '</div><div class="htmlImg"><img src="./photos/' + obj.img + '"></div>');
+			});
+			return marker;
+			 
+			}
+				window.onload = initMap;
+
+		var markers = [
+		
+		/* admin buildings */
+		
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.291296,
+				lng     : -71.829493,
+				desc    : '<ul><li>Administrative building</li><li>Classrooms</li><li>President’s Office/ Provost’s Office</li></ul>',
+				img     : 'lamaison.jpg',
+				name    : 'La Maison'
+				
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.292525,
+				lng     : -71.832272,
+				desc    : '<ul><li>Admissions Office</li><li>Financial Aid Office</li></ul>',
+				img     : 'admissionshouse.jpg',
+				name    : 'Admissions House'
+				
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.291294,
+				lng     : -71.828302,
+				desc    : '<ul><li>Office of Institutional Advancement</li><li>Magazine Office</li></ul>',
+				img     : 'southHall.jpg',
+				name    : 'Bishop Wright Hall'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.294906,
+				lng     : -71.825958,
+				desc    : '<ul><li>Public Affairs</li></ul>',
+				img     : 'armanet.jpg',
+				name    : 'Martel House'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.292319,
+				lng     : -71.828721,
+				desc    : '<ul><li>Registrar</li><li>Bursar</li><li>Financial Services</li><li>Conference Services</li></ul>',
+				img     : 'alumni.jpg',
+				name    : 'Alumni Hall'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.294084,
+				lng     : -71.831344,
+				desc    : '<ul><li>Home to the Assumptionist Community</li></ul>',
+				img     : 'Emmanuel.jpg',
+				name    : 'Emmanual House'
+			},
+			/* HEALTH_SAFETY*/
+			{	type    : TYPE_HEALTH_SAFETY,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.29286,
+				lng     : -71.828649,
+				desc    : '<ul><li>24/7 staff</li><li>Qualified police officers</li><li>Security, crime prevention, emergency medical assistance, fire safety</li></ul>',
+				img     : 'campolice.jpg',
+				name    : 'Public Safety'
+			},
+			{	type    : TYPE_HEALTH_SAFETY,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.295648,
+				lng     : -71.825722,
+				desc    : '<ul><li>Student Health Services</li><li>Trained nursing staff</li><li>Physician Referalls</li><li>Health Education</li></ul>',
+				img     : 'StudentHealthServices.gif',
+				name    : 'Armanet House'
+			},	
+			/* DINING*/
+			{	type    : TYPE_DINING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.294249,
+				lng     : -71.829053,
+				desc    : '<ul><li>Grille</li><li>Sandwich Bar</li><li>Pasta Bar</li><li>Salad Station</li><li>Specialty Station</li><li>Sit down booths</li></ul>',
+				img     : 'hagan.jpg',
+				name    : 'Charlie`s'
+			},
+			{	type    : TYPE_DINING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.291461,
+				lng     : -71.828565,
+				desc    : '<ul><li>Primary resident dining facility</li><li>Served by Sodexo</li><li>Extensive assortment of menu choices</li><li>All-you-can-eat</li></ul>',
+				img     : 'alumni.jpg',
+				name    : 'Taylor Dining Hall'
+			},
+			
+			/* CAMPUS_LIFE_SERVIS*/
+			{	type    : TYPE_CAMPUS_LIFE_SERVIS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.295263,
+				lng     : -71.82503,
+				desc    : '<ul><li>Building and Grounds</li></ul>',
+				img     : 'b&g.jpg',
+				name    : 'Maintenance Facility'
+			},
+			{	type    : TYPE_CAMPUS_LIFE_SERVIS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.294346,
+				lng     : -71.832358,
+				desc    : '<ul><li>Career, personal, and alcohol and drug counseling</li><li>Confidential</li></ul>',
+				img     : 'counseling.gif',
+				name    : 'Student Development and Counseling Center'
+			},
+			
+			
+			{	type    : TYPE_CAMPUS_LIFE_SERVIS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293378,
+				lng     : -71.830308,
+				desc    :  '<ul><li>Public access computer labs</li><li>Technology-rich classrooms</li><li>IT staff</li><li>Color printers, laser printers, slide scanners</li></ul>',
+				img     : 'AC_IT.jpg',
+				name    : 'Information Technology Center'
+			},
+			{	type    : TYPE_CAMPUS_LIFE_SERVIS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.294188,
+				lng     : -71.828898,
+				desc    : '<ul><li>Post Office</li><li>Bookstore</li><li>Conference Hall</li><li>Charlie`s Dining Hall</li><li>Activity offices</li><ul><li>Campus Ministry </li><li>Reach Out Center</li><li>Multicultural Affairs</li><li>Student Activities</li><li>Student Affairs</li><li>Campus Activities Board</li><li>Le Provocateur newspaper</li><li>Student Government Association</li></ul></ul>',
+				img     : 'hagan.jpg',
+				name    : 'Hagan Campus Center Hall'
+			},
+			
+			/* ACADEMIC */
+			{	type    : TYPE_ACADEMIC,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293378,
+				lng     : -71.829895,
+				desc    :  '<ul><li>Academic classrooms</ul>',
+				img     : 'Fuller.jpeg',
+				name    : 'Fuller Hall'
+			},
+			{	type    : TYPE_ACADEMIC,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.2923,
+				lng     : -71.8309,
+				desc    : '<ul><li>Department of Natural Sciences</li><li>60 seat auditorium </li><li>Student/faculty research laboratories</li><li>Conference rooms</li><li>Greenhouse</li><li>Teaching laboratories</li><li>Study and lounge areas</li></ul>',
+				img     : 'Testa.jpg',
+				name    : 'Testa Science Center'
+			},
+			{	type    : TYPE_ACADEMIC,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.292882,
+				lng     : -71.83195,
+				desc    : '<ul><li>Classroom/ presentation room</li></ul>',
+				img     : 'carriage_house.jpg',
+				name    : 'Carriage House'
+			},
+			{	type    : TYPE_ACADEMIC,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293382,
+				lng     : -71.829493,
+				desc    : '<ul><li>Home to Human Services and Rehabilitation Studies</li></ul>',
+				img     : 'Switzer.jpeg',
+				name    : 'Switzer Building'
+			},
+			{	type    : TYPE_ACADEMIC,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293112,
+				lng     : -71.829321,
+				desc    : '<ul><li>Media Services</li><li>Television studio</li><li>Avid editing systems</li><li>Students may sign out video field production kits </li></ul>',
+				img     : 'fuller.jpg',
+				name    : 'DiPasquale Media Center'
+			},
+			{	type    : TYPE_ACADEMIC,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.29293,
+				lng     : -71.828839,
+				desc    : '<ul><li>Academic Building and Offices</li><li>Two remodeled, technologically sophisticated auditoriums</li><li>Honors Program Suite</li><li>Copy Center</li><li>Campus Police </li><li>Music practice room</li></ul>',
+				img     : 'kennedy.jpg',
+				name    : 'Kennedy Memorial Hall'
+			},
+			{	type    : TYPE_ACADEMIC,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.292343,
+				lng     : -71.830148,
+				desc    : '<ul><li>Primary faculty office building</li><li>Art and music classrooms</li></ul>',
+				img     : 'desaultes.jpg',
+				name    : 'Founders Hall'
+			},
+			{	type    : TYPE_ACADEMIC,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.29485,
+				lng     : -71.829729,
+				desc    : '<ul><li>200,000 books</li><li>Subscriptions to over 2,000 print and electronic journals</li><li>More than 1,300 videos</li><li>Academic Support Center for Tutoring</li><li>Three floors </li><li>Printers</li><li>Computers for student use/ laptops to borrow</li><li>Interlibrary loan resource</li></ul>',
+				img     : 'Libraries.jpg',
+				name    : 'Emmanuel d\'Alzon Library'
+			},
+			
+				/* RELIGIOUS */
+			
+			{	type    : TYPE_RELIGIOUS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293751,
+				lng     : -71.831365,
+				desc    : '<ul><li>Morning and Evening prayer</li><li>Opportunities for participation in Liturgical Ministries, Eucharistic Ministries, Chapel Choir</li></ul>',
+				img     : 'chapel.jpg',
+				name    : 'The Chapel of the Holy Spirit'
+			},
+				{	type    : TYPE_RELIGIOUS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293782,
+				lng     : -71.83144,
+				desc    : '<ul><li>Campus Ministry Offices</li><li>Community gathering space</li><li>Restrooms</li></ul>',
+				img     : 'TinsleyCampusMinistryCenter.jpg',
+				name    : 'Tinsley Campus Ministry Center'
+			},
+			
+			
+
+
+			/* end of admin buildings */
+			
+			/* residences */
+			
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MED,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.29677,
+				lng     : -71.83165,
+				desc    : '<ul><li>Six Person Apartments</li><li>Two Private Bathrooms</li><li>Living Room</li><li>Kitchen</li><li>Air-Conditioning</li></ul>',
+				img     : 'southHall.jpg',
+				name    : 'South Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.297255,
+				lng     : -71.831435,
+				desc    : '<ul><li>Four or Five Person Suites</li><li>Two Bedrooms</li><li>Private Bathroom</li><li>Air-Conditioning</li></ul>',
+				img     : 'southHall.jpg',
+				name    : 'West Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.297509,
+				lng     : -71.83077,
+				desc    : '<ul><li>Six Person Apartments</li><li>Two Private Bathrooms</li><li>Living Room</li><li>Kitchen</li><li>Air-Conditioning</li></ul>',
+				img     : 'Plough.gif',
+				name    : 'Plough Hall'
+			},
+			
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.296144,
+				lng     : -71.830394,
+				desc    : '<ul><li>Five Person Apartments</li><li>Private Bathroom</li><li>Kitchen</li><li>Living Room</li><li>Study Area</li></ul>',
+				img     : 'waweb.jpg',
+				name    : 'Wachusett Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.295771,
+				lng     : -71.831177,
+				desc    : '<ul><li>Primarily Second Year Students</li><li>Four Person Apartments</li><li>Private Bathroom</li><li>Kitchen Living Room</li><li>Air-Conditioning</li><li>Interest Circle Weekly Meetings with Faculty</li></ul>',
+				img     : 'llc.jpg',
+				name    : 'Living & Learning Center'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.296001,
+				lng     : -71.829858,
+				desc    : '<ul><li>Traditional Dorm Style</li><li>Primarily First and Second Year Students</li><li>Triples and Quads</li></ul>',
+				img     : 'Worcester_Building.jpg',
+				name    : 'Worcester Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.296255,
+				lng     : -71.824687,
+				desc    : '<ul><li>Six Person Apartment</li><li>Upperclassmen</li><li>Bathroom</li><li>Living Room</li><li>Kitchen</li></ul>',
+				img     : 'authier-dufault.jpg',
+				name    : 'Authier Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.295969,
+				lng     : -71.824472,
+				desc    : '<ul><li>Six Person Apartment</li><li>Upperclassmen</li><li>Bathroom</li><li>Living Room</li><li>Kitchen</li></ul>',
+				img     : 'authier-dufault.jpg',
+				name    : 'Dufault Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.295299,
+				lng     : -71.826564,
+				desc    : '<ul><li>Four Person Townhouse</li><li>Two Floors</li><li>Bathroom</li><li>Living Room</li><li>Kitchen</li></ul>',
+				img     : 'dion.jpg',
+				name    : 'Dion Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.295172,
+				lng     : -71.825947,
+				desc    :  '<ul><li>Five Person Apartments</li><li>Bathroom</li><li>Kitchen</li><li>Living Room</li></ul>',
+				img     : '5men.jpg',
+				name    : 'Moquin Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.294632,
+				lng     : -71.827267,
+				desc    : '<ul><li>First and Second Year Students</li><li>Triples and Quads</li><li>Traditional Dorm Style</li></ul>',
+				img     : 'Salsbury_Building.jpg',
+				name    : 'Salisbury Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.294449,
+				lng     : -71.82636,
+				desc    : '<ul><li>Four Person Townhouses</li><li>Two Stories</li><li>Bathroom</li><li>Living Room</li><li>Kitchen</li></ul>',
+				img     : 't`s.jpg',
+				name    : 'Bissonette Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.294037,
+				lng     : -71.827202,
+				desc    : '<ul><li>Six Person Townhouses</li><li>Living Rooms</li><li>Kitchen</li><li>Bathroom</li><li>Double Bedrooms</li></ul>',
+				img     : '20130228_140230.jpg',
+				name    : 'Aubuchon Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293608,
+				lng     : -71.826875,
+				desc    : '<ul><li>Substance-Free Housing</li><li>Traditional Dorm Style</li><li>All Four Classes</li><li>Singles, Doubles, Triples</li></ul>',
+				img     : 'Nault_Building.jpg',
+				name    : 'Nault Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293271,
+				lng     : -71.826725,
+				desc    : '<ul><li>Honors Housing</li><li>Traditional Dorm Style</li><li>Mainly First Years</li></ul>',
+				img     : '20130228.jpg',
+				name    : 'Hanhrahan Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293394,
+				lng     : -71.826253,
+				desc    : '<ul><li>Traditional Dorm Style</li><li>Mainly Sophomores</li><li>Singles, Doubles, Triples</li></ul>',
+				img     : 'young.jpg',
+				name    : 'Young Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.292243,
+				lng     : -71.829547,
+				desc    : '<ul><li>First year students</li><li>Doubles</li><li>Traditional Dorm style rooms</li><li>Co-ed by floor</li></ul>',
+				img     : 'desaultes.jpg',
+				name    : 'Desautels Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     :  42.292036,
+				lng     : -71.828774,
+				desc    : '<ul><li>First year students</li><li>Doubles</li><li>Traditional Dorm style rooms</li><li>Co-ed by floor</li></ul>',
+				img     : 'alumni.jpg',
+				name    : 'Alumni Hall'
+			},
+			
+
+
+			
+			/* end of residences */
+			
+			/* parking */
+			
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293081,
+				lng     : -71.831381,
+				desc    : 'Parking for Admissions, Chapel, and Testa',
+				img     : 'southHall.jpg',
+				name    : 'Admissions & Chapel Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.293105,
+				lng     : -71.827927,
+				desc    : 'Fits about 20 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Kennedy Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.295072,
+				lng     : -71.827717,
+				desc    : 'Fits about 100 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Plourde Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.29462,
+				lng     : -71.828066,
+				desc    : 'Fits about 20 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Laska Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.293977,
+				lng     : -71.826414,
+				desc    : 'Fits about 100 cars.',
+				img     : 'southHall.jpg',
+				name    : 'East Residence Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.295287,
+				lng     : -71.830823,
+				desc    : 'Fits about 40 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Upper Residence Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.297882,
+				lng     : -71.830362,
+				desc    : 'Fits about 60 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Super Upper Residence Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.295751,
+				lng     : -71.826226,
+				desc    : 'Fits about 60 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Valley Residence Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.295049,
+				lng     : -71.829606,
+				desc    : 'Fits about 40 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Library Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.291525,
+				lng     : -71.831226,
+				desc    : 'Fits about 120 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Testa Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.291978,
+				lng     : -71.827905,
+				desc    : 'Fits about 40 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Alumni Parking'
+			},
+
+			
+			 /*end of parking */
+			
+			/* athletic facilities */
+			
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.2947,
+				lng     : -71.828892,
+				desc    : '<ul><li>Home to Assumption`s NCAA Division II Basketball and Volleyball teams</li></ul>',
+				img     : 'Laska.jpg',
+				name    : 'Laska Gymnasium'
+			},
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.295359,
+				lng     : -71.828463,
+				desc    : '<ul><li>Basketball Courts</li><li>Racquetball Courts</li><li>Indoor Pool</li><li>Indoor Track</li><li>Weight Room</li><li>Aerobic Room</li><li>Fully Equipped Fitness Center</li><li>Home to Swim and Dive Team</li><li>Home to Intramurals </li></ul>',
+				img     : 'Recreation.jpg',
+				name    : 'Plourde Recreation Center'
+			},
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.296295,
+				lng     : -71.828463,
+				desc    : '<ul><li>Home to the Baseball Team </li></ul>',
+				img     : 'rocheleau.jpg',
+				name    : 'H.L. Rocheleau Athletic Field'
+			},
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.296271,
+				lng     : -71.827143,
+				desc    : '<ul><li>Home of Soccer, Football, Field Hockey, and Lacrosse Teams </li><li>Turf Surface</li><li>Seats Approximately 1,200 People </li><li>Fully Equipped Concession Stand</li><li>Pre-game and Post-game Event Area</li></ul>',
+				img     : 'multisport.jpg',
+				name    : 'Multi-Sport Stadium'
+			},
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.294104,
+				lng     : -71.825169,
+				desc    : '<ul><li>Home to Men and Women`s Tennis Teams</li></ul>',
+				img     : 'multisport.jpg',
+				name    : 'Tennis Courts'
+			},
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.296437,
+				lng     : -71.825856,
+				desc    : '<ul><li>Home to the Softball Team</li></ul>',
+				img     : 'multisport.jpg',
+				name    : 'Normand R. Marois Field'
+			},
+	/*		{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.295802,
+				lng     : -71.825008,
+				desc    : 'Tennis Courts 2',
+				img     : 'multisport.jpg',
+				name    : 'Tennis Courts 2'
+			},
+
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.2957,
+				lng     : -71.829032,
+				desc    : 'Outdoor Basketball Court',
+				img     : 'multisport.jpg',
+				name    : 'Outdoor Basketball Court'
+			},
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.295446,
+				lng     : -71.82916,
+				desc    : 'Beach Volleyball Court',
+				img     : 'multisport.jpg',
+				name    : 'Beach Volleyball Court'
+			},
+*/
+			
+			/* end of athletic facilities */
+		
+			
+			];
+		//labelContainer.innerHTML = side_bar_html;
+
+				
+			 //]]>
+		</script>
+	
+	</body>
+</html>

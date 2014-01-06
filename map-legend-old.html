@@ -1,0 +1,774 @@
+<html>
+	<head>
+		<title>Interactive legend + MarkerManager = Sweet Google Map!</title>
+		<style type="text/css">
+
+		body {
+			margin: 0;
+			padding: 0;
+		}
+
+		#map {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 940px;
+			height: 803px;
+		}
+		.htmlBox {
+			width:420px;
+			height:160px;
+			font-size: .9em;
+			font-family: Helvetica;
+		}
+		.htmlTitle {
+		font-size:18px;
+		color:#005195;	
+		}
+		.htmlDesc {
+			font-size: .8em;
+			float:left;
+			width:250px;
+			/* text-align: justify; */
+		}
+		.htmlImg {
+			float:right;
+			width:160px;
+			height:120px;
+		}
+		.htmlImg img {
+			border: 1px solid #000;
+		}
+		.htmlDesc ul {
+			margin-left: -22px;
+		}
+		/* .gmnoprint {
+			width:350px;
+			height:220px;
+		} */
+		</style>
+		
+		<!-- google maps api (required) -->
+
+		<!-- <script type="text/javascript" src="http://maps.google.com/maps?file=api&amp;v=2&amp;key=AIzaSyA-_ATgZdYsbqWfGfJzrZ0TswHNdwprOPs&sensor=false"></script> -->
+		
+		<script type="text/javascript" src="http://maps.google.com/maps?file=api&amp;v=3&amp;key=AIzaSyA-_ATgZdYsbqWfGfJzrZ0TswHNdwprOPs&sensor=false"></script>
+
+		<!-- markermanager (required) -->
+		<script type="text/javascript" src="http://gmaps-utility-library-dev.googlecode.com/svn/trunk/markermanager/src/markermanager.js"></script>
+
+		<!-- mapiconmaker (NOT required by LegendControl, but used below for creating pins of different colors) -->
+		<script type="text/javascript" src="http://gmaps-utility-library-dev.googlecode.com/svn/trunk/mapiconmaker/src/mapiconmaker.js"></script>
+
+		<!-- legendcontrol (required) -->
+		<script type="text/javascript" src="./LegendControl.js"></script>
+
+
+
+	</head>
+	<!--<body  onunload="GUnload()">-->
+	<body>
+
+		<!-- map viewport -->
+		<div id="map"></div>
+
+				<!-- set up the map -->
+		<script type="text/javascript">
+		 //<![CDATA[		
+		
+		
+
+
+      // === This function picks up the click and opens the corresponding info window ===
+      function myclick(i) {
+        GEvent.trigger(markers[i], "click");
+      }
+            
+      
+      		// these variables are not required by LegendControl
+		var
+			TYPE_ADMIN      = 'admin',
+			TYPE_RES     	= 'residence',
+			TYPE_PARKING 	= 'parking',
+			TYPE_ATHLETICS 	= 'athletics',
+
+			PIN_WIDTH  = 32,
+			PIN_HEIGHT = 32,
+
+			PIN_ADMIN_BIG       = 'http://chart.apis.google.com/chart?cht=mm&chs=32x32&chco=ffffff,cc44ff,000000&ext=.png',
+			PIN_RES_BIG     = 'http://chart.apis.google.com/chart?cht=mm&chs=32x32&chco=ffffff,ff8b16,000000&ext=.png',
+			PIN_PARKING_BIG = 'http://chart.apis.google.com/chart?cht=mm&chs=32x32&chco=ffffff,44aa00,000000&ext=.png',
+			PIN_ATHLETICS_BIG = 'http://chart.apis.google.com/chart?cht=mm&chs=32x32&chco=ffffff,005195,000000&ext=.png',
+
+			PIN_ADMIN_SMALL       = 'http://chart.apis.google.com/chart?cht=mm&chs=16x16&chco=ffffff,cc44ff,000000&ext=.png',
+			PIN_RES_SMALL     = 'http://chart.apis.google.com/chart?cht=mm&chs=16x16&chco=ffffff,ff8b16,000000&ext=.png',
+			PIN_PARKING_SMALL = 'http://chart.apis.google.com/chart?cht=mm&chs=16x16&chco=ffffff,44aa00,000000&ext=.png',
+			PIN_ATHLETICS_SMALL = 'http://chart.apis.google.com/chart?cht=mm&chs=16x16&chco=ffffff,005195,000000&ext=.png',
+
+			ZOOM_MIN = 0,
+			ZOOM_MED = 17,
+			ZOOM_MAX = 18,
+
+			colors = {},
+			legendValues, // legend data
+			markerGroups = {}, // container for arrays of markers, one array per type (required by LegendControl)
+			markers
+		;
+
+		// marker pin colors
+		colors[TYPE_ADMIN]       = '#cc44ff';
+		colors[TYPE_RES]         = '#ff8b16';
+		colors[TYPE_PARKING]  = '#44aa00';
+		colors[TYPE_ATHLETICS]  = '#005195';
+
+		legendValues = [
+			// pins show up in the legend in the order specified below
+			// if you change the order, make sure they all have commas at the end, except the last one!
+			{ type    : TYPE_ADMIN,       	description : 'Admin & Classrooms',       pinSrc : PIN_ADMIN_SMALL       },
+			{ type    : TYPE_RES,     		description : 'Residences',     pinSrc : PIN_RES_SMALL     },
+			{ type    : TYPE_PARKING, 		description : 'Parking', pinSrc : PIN_PARKING_SMALL },
+			{ type    : TYPE_ATHLETICS, 	description : 'Athletic Facilities', pinSrc : PIN_ATHLETICS_SMALL }
+		];
+
+
+
+// === This function picks up the click and opens the corresponding info window ===
+      
+		 var labelContainer;
+
+
+		function initMap() {
+			var map, mgr;
+
+			// set up your basic map
+			map = new GMap2(document.getElementById('map'));
+			map.setMapType( G_HYBRID_MAP );
+			map.setCenter(new GLatLng(42.294184,-71.828903), 17);
+			map.addControl(new GLargeMapControl());
+			map.addControl(new GScaleControl());
+			map.addControl(new GMapTypeControl());
+
+
+			// create markermanager instance
+			mgr = new MarkerManager(map);
+
+			// add markers to MarkerManager and set up markerGroups
+			initMarkers(mgr);
+			
+			// add legend
+			map.addControl(new LegendControl({
+				mgr          : mgr,
+				markerGroups : markerGroups,
+				legendValues : legendValues
+			}));
+			
+		//	map.addControl(new LabelControl());
+			
+		}
+
+
+		function initMarkers(mgr) {
+			var item, i, len;
+ 
+			// setup marker groups by type
+			for (item in legendValues) {
+				if ('function' !== typeof legendValues[item]) {
+					markerGroups[legendValues[item].type] = [];
+				}
+			}
+
+			// create arrays of markers of the various types
+			for (i = 0, len = markers.length; i < len; i++) {
+				markerGroups[markers[i].type].push(createMarker(markers[i]));
+				
+
+				
+				 				 //i++;
+				 //return marker;
+				
+			}
+
+			// add markers to the map
+			for (item in markerGroups) {
+				if ('function' !== typeof markerGroups[item]) {
+					for (i = 0, len = markerGroups[item].length; i < len; ++i) {
+						mgr.addMarker(markerGroups[item][i], markerGroups[item][i].zoomMin, markerGroups[item][i].zoomMax);
+						
+							
+					}
+					 
+				}
+			}
+
+			// display the pins
+			mgr.refresh();
+		}
+
+		/**
+		 * Create a marker
+		 * @param object obj Object literal specifying marker attributes
+		 * @return GMarker
+		 */
+		
+		function createMarker(obj) {
+			var marker;
+			
+			
+			marker = new GMarker(new GLatLng(obj.lat, obj.lng), {
+				title    : obj.name,
+				desc     : obj.desc,
+				img      : obj.img,
+				icon     : MapIconMaker.createMarkerIcon({
+					width        : PIN_WIDTH,
+					height       : PIN_HEIGHT,
+					primaryColor : colors[obj.type]
+				})
+			});
+
+			marker.zoomMin = obj.zoomMin;
+			marker.zoomMax = obj.zoomMax;
+			
+			
+						
+			GEvent.addListener(marker, 'click', function() {
+			marker.openInfoWindowHtml('<div class="htmlBox"><div class="htmlTitle">' + obj.name + '</div><div class="htmlDesc">'  + obj.desc + '</div><div class="htmlImg"><img src="./photos/' + obj.img + '"></div>');
+			});
+			return marker;
+			 
+			}
+				window.onload = initMap;
+
+		var markers = [
+		
+		/* admin buildings */
+		
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.291296,
+				lng     : -71.829493,
+				desc    : 'This is the Main Building. Presidents Office is here',
+				img     : 'lamaison.jpg',
+				name    : 'La Maison'
+				
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.292525,
+				lng     : -71.832272,
+				desc    : 'Admissions information goes here',
+				img     : 'admissionshouse.jpg',
+				name    : 'Admissions House'
+				
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.292882,
+				lng     : -71.83195,
+				desc    : 'No idea what goes on here',
+				img     : 'southHall.jpg',
+				name    : 'Carriage House'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.2923,
+				lng     : -71.8309,
+				desc    : '<ul><li>Department of Natural Sciences</li><li>60 seat auditorium </li><li>Student/faculty research laboratories</li><li>Conference rooms</li><li>Greenhouse</li><li>Teaching laboratories</li><li>Study and lounge areas</li></ul>',
+				img     : 'southHall.jpg',
+				name    : 'Testa Science Center'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.295263,
+				lng     : -71.82503,
+				desc    : 'This is where they keep all the big equipment and do repairs and stuff.',
+				img     : 'southHall.jpg',
+				name    : 'Maintenance Facility'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.295648,
+				lng     : -71.825722,
+				desc    : 'Licensed, certified nurse practitioners and registered nurses assess and treat students, and offer an array of medical services in collaboration with a consulting physician.',
+				img     : 'armanet.jpg',
+				name    : 'Armanet House'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.294906,
+				lng     : -71.825958,
+				desc    : 'Do not know what to put here.',
+				img     : 'armanet.jpg',
+				name    : 'Martel House'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293378,
+				lng     : -71.830308,
+				desc    : 'Assumption offers a wide range of technical services and support to the campus\'s students, faculty, and staff. With 4 computer labs, 8 computerized classrooms, and a broadcast-quality media center, students are provided industry leading tools and facilities to encourage advanced learning.',
+				img     : 'fuller.jpg',
+				name    : 'Information Technology Center'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293378,
+				lng     : -71.829895,
+				desc    : 'Assumption offers a wide range of technical services and support to the campus\'s students, faculty, and staff. With 4 computer labs, 8 computerized classrooms, and a broadcast-quality media center, students are provided industry leading tools and facilities to encourage advanced learning.',
+				img     : 'fuller.jpg',
+				name    : 'Fuller Hall'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293382,
+				lng     : -71.829493,
+				desc    : 'Got nothing for here.',
+				img     : 'fuller.jpg',
+				name    : 'Switzer Building'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293112,
+				lng     : -71.829321,
+				desc    : 'The DiPasquale Media Center offers broadcast quality multi-media and video production, including two production studio classrooms.',
+				img     : 'fuller.jpg',
+				name    : 'DiPasquale Media Center'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.29293,
+				lng     : -71.828839,
+				desc    : 'The Kennedy Family of Massachusetts has long been dedicated to public service. Joseph Kennedy Sr. made his fortune in Massachusetts and married Rose Fitzgerald, the daughter of Boston Mayor John Fitzgerald.',
+				img     : 'kennedy.jpg',
+				name    : 'Kennedy Memorial Hall'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.292382,
+				lng     : -71.829472,
+				desc    : 'Desautels Hall is located in the heart of campus next to Alumni Hall. This building houses primarily first year students in double bedrooms, and is co-ed by floor. Currently there are two floors of women and one floor of men. Students refer to this building as <b>Des.</b>',
+				img     : 'desaultes.jpg',
+				name    : 'Desaultes Hall'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.292343,
+				lng     : -71.830148,
+				desc    : 'Founders Hall is located in the heart of campus next to Alumni Hall. This building houses primarily first year students in double bedrooms, and is co-ed by floor. Currently there are two floors of women and one floor of men. Students refer to this building as <b>Des.</b>',
+				img     : 'desaultes.jpg',
+				name    : 'Founders Hall'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.292319,
+				lng     : -71.828721,
+				desc    : 'Alumni Hall is located in the heart of campus next to Desautels Hall. This building houses primarily first year students in double bedrooms, and is co-ed by floor. Currently there are two floors of women and one floor of men.',
+				img     : 'alumni.jpg',
+				name    : 'Alumni Hall'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.291461,
+				lng     : -71.828565,
+				desc    : 'Taylor Dining Hall',
+				img     : 'alumni.jpg',
+				name    : 'Taylor Dining Hall'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.294188,
+				lng     : -71.828898,
+				desc    : 'The Hagan Campus Center is truly the <b>center</b> of Assumption College. Besides being located in the center of campus, it is a focal point of activity from morning until night. The Hagan Campus Center is the place to be, where you can really feel the <b>pulse</b> of the campus. The Campus Center is a place to eat and a place to meet, a place to work and a place to relax, and a place to get the information you need about everything happening on campus.',
+				img     : 'hagan.jpg',
+				name    : 'Hagan Campus Center Hall'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293751,
+				lng     : -71.831365,
+				desc    : 'Assumption College\'s Chapel of the Holy Spirit was completed in 1968. The architect of this contemporary structure was college alumnus Norman Nault. He was aided by his wife Julie Nault, as interior design consultant. The Chapel can accommodate 400 to 450 people.',
+				img     : 'chapel.jpg',
+				name    : 'The Chapel of the Holy Spirit'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.294084,
+				lng     : -71.831344,
+				desc    : 'Emmanual House ...',
+				img     : 'chapel.jpg',
+				name    : 'Emmanual House'
+			},
+			{	type    : TYPE_ADMIN,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.29485,
+				lng     : -71.829729,
+				desc    : 'The Emmanuel d\'Alzon Library is a center of academic life at Assumption. The library\'s holdings include more than 200,000 books, subscriptions to over 2,000 print and electronic journals, and more than 1,300 videos, DVDs, and audio titles.',
+				img     : 'chapel.jpg',
+				name    : 'Emmanuel d\'Alzon Library'
+			},
+
+
+			/* end of admin buildings */
+			
+			/* residences */
+			
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MED,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.296708,
+				lng     : -71.831714,
+				desc    : 'South Hall is in back of the Living/Learning Center. South Halls contains six person apartments which house residents in double and single bedrooms. These apartments also have two bathrooms, a kitchen and living room. Apartments are single sex and juniors and seniors primarily live here.',
+				img     : 'southHall.jpg',
+				name    : 'South Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.297255,
+				lng     : -71.831435,
+				desc    : 'This is West Hall. Also a nice place',
+				name    : 'West Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.297509,
+				lng     : -71.83077,
+				desc    : 'This is North Hall. Nice Place',
+				img     : 'southHall.jpg',
+				name    : 'Plough Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.296144,
+				lng     : -71.830394,
+				desc    : 'This is Wachusett Hall. Nice Place',
+				img     : 'waweb.jpg',
+				name    : 'Wachusett Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.295771,
+				lng     : -71.831177,
+				desc    : 'The Living Learning Center provides a learning environment for Assumption students to intellectually engage with peers and faculty outside the classroom. Through Interest Circle discussion groups, residents of the Living Learning Center participate in structured opportunities to talk about current events and social issues in this unique residential community.',
+				img     : 'llc.jpg',
+				name    : 'Living & Learning Center'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.296001,
+				lng     : -71.829858,
+				desc    : 'Worcester Hall is located directly in back of the Plourde Recreation Center, beyond the outdoor basketball and volleyball courts. This hall is a mirror image of Salisbury Hall. It houses primarily first year and second year students in triples and quads. Worcester Hall is co-ed by floor. Currently there are three floors of women and one floor of men.',
+				img     : 'llc.jpg',
+				name    : 'Worcester Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.296255,
+				lng     : -71.824687,
+				desc    : 'Authier Hall and Dufault Hall are located at the far end of campus, in an area known as The Valley. These buildings house primarily juniors and seniors in six person apartments. Residents live in double bedrooms and share a kitchen, living room and bathroom. These halls are often referred to as The Sixes, or Six Men.',
+				img     : 'authier-dufault.jpg',
+				name    : 'Authier Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.295969,
+				lng     : -71.824472,
+				desc    : 'Authier Hall and Dufault Hall are located at the far end of campus, in an area known as <b>The Valley</b>. These buildings house primarily juniors and seniors in six person apartments. Residents live in double bedrooms and share a kitchen, living room and bathroom. These halls are often referred to as <b>The Sixes</b>, or <b>Six Men.</b>',
+				img     : 'authier-dufault.jpg',
+				name    : 'Dufault Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.295299,
+				lng     : -71.826564,
+				desc    : '<p>Dion Hall is located in an area of campus known as <b>The Valley</b>. It is located on the main road of campus, next to Salisbury Hall. Dion Hall is made up of four person apartments that house residents in double bedrooms. Dion apartments are addressed 4A through 4K and are commonly known as <b>The Fours</b> or <b>Four Men</b>. Juniors and seniors primarily live here.</p><br /><b>Dimensions</b><br />Kitchen: 12\'x16\'<br />Kitchen window: 3\'10\"x3\'10\"<br />Living Room: 23\'x11\'<br />Living Room window: 4\'10\"x3\'10\"<br />Bedrooms (2): 12\'x11.5\'<br />Bedroom window: 4\'10\"x3\'10\"',
+				img     : 'llc.jpg',
+				name    : 'Dion Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.295172,
+				lng     : -71.825947,
+				desc    : '<p>Moquin Hall is located in an area of campus known as <b>The Valley.</b> It is located on the main road of campus, next to Dion Hall. Moquin Hall consists of five person apartments. Each apartment has one single and two double bedrooms. Moquin apartments are addressed 5A through 5K and are commonly known as <b>The Fives</b> or <b>Five Men.</b> Juniors and seniors primarily live here.</p>',
+				img     : 'llc.jpg',
+				name    : 'Moquin Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.294632,
+				lng     : -71.827267,
+				desc    : '<p>Salisbury Hall information ...</p>',
+				img     : 'llc.jpg',
+				name    : 'Salisbury Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.294449,
+				lng     : -71.82636,
+				desc    : '<p>Bissonette Hall information ...</p>',
+				img     : 'llc.jpg',
+				name    : 'Bissonette Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.294037,
+				lng     : -71.827202,
+				desc    : '<p>Aubuchon Hall information ...</p>',
+				img     : 'llc.jpg',
+				name    : 'Aubuchon Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293608,
+				lng     : -71.826875,
+				desc    : '<p>Nault Hall information ...</p>',
+				img     : 'llc.jpg',
+				name    : 'Nault Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293271,
+				lng     : -71.826725,
+				desc    : '<p>Hanhrahan Hall information ...</p>',
+				img     : 'llc.jpg',
+				name    : 'Hanhrahan Hall'
+			},
+			{	type    : TYPE_RES,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293394,
+				lng     : -71.826253,
+				desc    : '<p>Young Hall information ...</p>',
+				img     : 'llc.jpg',
+				name    : 'Young	 Hall'
+			},
+
+
+			
+			/* end of residences */
+			
+			/* parking */
+			
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MAX,
+				lat     : 42.293081,
+				lng     : -71.831381,
+				desc    : 'Parking for Admissions, Chapel, and Testa',
+				img     : 'southHall.jpg',
+				name    : 'Admissions & Chapel Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.293105,
+				lng     : -71.827927,
+				desc    : 'Fits about 20 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Kennedy Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.295072,
+				lng     : -71.827717,
+				desc    : 'Fits about 100 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Plourde Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.29462,
+				lng     : -71.828066,
+				desc    : 'Fits about 20 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Laska Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.293977,
+				lng     : -71.826414,
+				desc    : 'Fits about 100 cars.',
+				img     : 'southHall.jpg',
+				name    : 'East Residence Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.295287,
+				lng     : -71.830823,
+				desc    : 'Fits about 40 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Upper Residence Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.297882,
+				lng     : -71.830362,
+				desc    : 'Fits about 60 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Super Upper Residence Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.295751,
+				lng     : -71.826226,
+				desc    : 'Fits about 60 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Valley Residence Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.295049,
+				lng     : -71.829606,
+				desc    : 'Fits about 40 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Library Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.291525,
+				lng     : -71.831226,
+				desc    : 'Fits about 120 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Testa Parking'
+			},
+			{	type    : TYPE_PARKING,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.291978,
+				lng     : -71.827905,
+				desc    : 'Fits about 40 cars.',
+				img     : 'southHall.jpg',
+				name    : 'Alumni Parking'
+			},
+
+			
+			/* end of parking */
+			
+			/* athletic facilities */
+			
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.2947,
+				lng     : -71.828892,
+				desc    : 'Laska Gymnasium houses basketball, Gymnastics, and other stuff.',
+				img     : 'southHall.jpg',
+				name    : 'Laska Gymnasium'
+			},
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.295359,
+				lng     : -71.828463,
+				desc    : 'Plourde houses swimming, track, weights, and other stuff.',
+				img     : 'southHall.jpg',
+				name    : 'Plourde Recreation Center'
+			},
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.296295,
+				lng     : -71.828463,
+				desc    : 'H.L. Rocheleau Athletic Field, named after one of the great benefactors of the College and friend of student-athletes, was modernized and re-opened in 2006. The Greyhounds are the second-winningiest Division II program in New England history with over 900 victories and played in the NCAA tournament in 2009!',
+				img     : 'rocheleau.jpg',
+				name    : 'H.L. Rocheleau Athletic Field'
+			},
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.296271,
+				lng     : -71.827143,
+				desc    : 'The Multi-Sport Stadium opened in September 2005. The A-turf surface is among the most modern and "athlete-friendly" surfaces available. The stands seat 1,200 fans and there is a fully-equipped concession stand and pre-game and post-game event area.',
+				img     : 'multisport.jpg',
+				name    : 'Multi-Sport Stadium'
+			},
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.294104,
+				lng     : -71.825169,
+				desc    : 'Tennis Courts',
+				img     : 'multisport.jpg',
+				name    : 'Tennis Courts'
+			},
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.295802,
+				lng     : -71.825008,
+				desc    : 'Tennis Courts 2',
+				img     : 'multisport.jpg',
+				name    : 'Tennis Courts 2'
+			},
+
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.2957,
+				lng     : -71.829032,
+				desc    : 'Outdoor Basketball Court',
+				img     : 'multisport.jpg',
+				name    : 'Outdoor Basketball Court'
+			},
+			{	type    : TYPE_ATHLETICS,
+				zoomMin : ZOOM_MIN,
+				zoomMax : ZOOM_MED,
+				lat     : 42.295446,
+				lng     : -71.82916,
+				desc    : 'Beach Volleyball Court',
+				img     : 'multisport.jpg',
+				name    : 'Beach Volleyball Court'
+			},
+
+			
+			/* end of athletic facilities */
+		
+			
+			];
+		//labelContainer.innerHTML = side_bar_html;
+
+				
+			 //]]>
+		</script>
+	
+	</body>
+</html>
